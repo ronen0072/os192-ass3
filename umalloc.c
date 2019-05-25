@@ -150,8 +150,10 @@ void * malloc(uint size) {
 }
 
 // sign that page was allocated with pmalloc
-int init_pmalloc(void * page){
-    return (reset_avl(page) == -1 || sign_pa(page) == -1);
+boolean init_pmalloc(void * page){
+    if (reset_avl(page) == -1 || sign_pa(page) == -1 )
+        return false;
+    return true;
 }
 
 void* pmalloc(){
@@ -172,11 +174,10 @@ void* pmalloc(){
         h->next=rest;
         void * rest_addr = chunk + PAGE_SIZE + sizeOfHeader;
         free(rest_addr);// return rest of the chunk back to stock
-        if(init_pmalloc(chunk) == -1){
+        if(init_pmalloc(chunk) == false){
             free(chunk);
             return 0;
         }
-
         return chunk;
     }
     else {
@@ -205,29 +206,27 @@ void* pmalloc(){
         free(chunk);
         free(r_chunk);
 
-        if(init_pmalloc(chunk) == -1){
+        if(init_pmalloc(ans) == false){
             free(ans);
             return 0;
         }
-
-
         return ans;
     }
 }
 
-
-
 int protect_page(void* ap){
-    // check that page was pmalloced
+
     if(get_pa_bit(ap) == 0){
         return -1;
     }
-
-    Header* h = ((Header*)ap) - 1; // get the header
     //check that the pointer point to the start of the page
-    if((uint) ap % PAGE_SIZE != 0 ||  h->size == PAGE_SIZE)
+    if((uint) ap % PAGE_SIZE != 0 )
         return -1;
     protect_p(ap);
     return 1;
 
 }
+int pfree(void* ap){
+    return 0;
+}
+

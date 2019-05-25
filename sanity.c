@@ -73,13 +73,21 @@ void test_protected(){
         return;
     }
 
+
     if(protect_page(page) == -1){
         printf(1,"page not pmalloced\n");
         ans=-1;
         return;
     }
+
+    if(get_w_bit(page)== 0)
+        ans++;
+
+
+
+
 // try to memset
-    memset(page,0,500);
+  //    memset(page,0,500);
 
 
 }
@@ -108,7 +116,7 @@ int main(void){
     // __________________MALLOC___________________
     make_test(test_malloc, 2, "test_malloc");
     make_test(test_pmalloc_sanity, 1, "test_pmalloc_sanity");
-    make_test(test_protected, 0, "test_protected"); //should create a trap
+    make_test(test_protected, 1, "test_protected"); //should create a trap
 
 
     // ___________________SUMMERY_______________________________

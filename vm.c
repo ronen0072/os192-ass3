@@ -62,44 +62,49 @@ int protect_p(void * va){
         return -1;
 
     *pte =(*pte) & 0xFFFFFFFD;
+    lcr3(V2P(myproc()->pgdir));
     return 0;
+
 }
 
 int unprotect_p(void * va){
     pte_t *pte;
     char *a = (char*)PGROUNDDOWN((uint)va);
-    if((pte = walkpgdir(myproc()->pgdir, a, 1)) == 0) // walkpgdir  fail
+    if((pte = walkpgdir(myproc()->pgdir, a, 0)) == 0) // walkpgdir  fail
         return -1;
     *pte =(*pte) | PTE_W ;
+    lcr3(V2P(myproc()->pgdir));
     return 0;
 }
 
 int get_pa_bit(void * va){
     pte_t *pte;
     char *a = (char*)PGROUNDDOWN((uint)va);
-    if((pte = walkpgdir(myproc()->pgdir, a, 1)) == 0) // walkpgdir  fail
+    if((pte = walkpgdir(myproc()->pgdir, a, 0)) == 0) // walkpgdir  fail
         return -1;
     uint pa_bit =(*pte) & PTE_PA;
     pa_bit = pa_bit >> 10;
-    return pa_bit;
+    return  pa_bit;
 }
 
 int get_w_bit(void * va){
     pte_t *pte;
     char *a = (char*)PGROUNDDOWN((uint)va);
-    if((pte = walkpgdir(myproc()->pgdir, a, 1)) == 0) // walkpgdir  fail
+    if((pte = walkpgdir(myproc()->pgdir, a, 0)) == 0) // walkpgdir  fail
         return -1;
     uint pa_bit =(*pte) & PTE_W;
+
     pa_bit = pa_bit >> 1;
-    return pa_bit;
+    return pa_bit ;
 }
 
 int sign_pa(void * va){
     pte_t *pte;
     char *a = (char*)PGROUNDDOWN((uint)va);
-    if((pte = walkpgdir(myproc()->pgdir, a, 1)) == 0) // walkpgdir  fail
+    if((pte = walkpgdir(myproc()->pgdir, a, 0)) == 0) // walkpgdir  fail
         return -1;
     *pte =(*pte) | PTE_PA; // sign that it was created with pmalloc
+    lcr3(V2P(myproc()->pgdir));
     return 0;
 }
 
@@ -107,9 +112,10 @@ int sign_pa(void * va){
 int reset_avl(void * va){
     pte_t *pte;
     char *a = (char*)PGROUNDDOWN((uint)va);
-    if((pte = walkpgdir(myproc()->pgdir, a, 1)) == 0) // walkpgdir  fail
+    if((pte = walkpgdir(myproc()->pgdir, a, 0)) == 0) // walkpgdir  fail
         return -1;
     *pte = (*pte) & 0xFFFFF8FF; // set PTE_P  bits to zero and sign as used
+    lcr3(V2P(myproc()->pgdir));
     return 0;
 }
 // Create PTEs for virtual addresses starting at va that refer to
