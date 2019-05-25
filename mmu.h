@@ -144,6 +144,9 @@ struct segdesc {
 #define PTE_PG          0x200   // Paged out to secondary storage
 
 
+#define PTE_PA          0x400   // Created with Pmalloc (bit 11)
+
+
 // Address in page table or page directory entry
 #define PTE_ADDR(pte)   ((uint)(pte) & ~0xFFF)
 #define PTE_FLAGS(pte)  ((uint)(pte) &  0xFFF)

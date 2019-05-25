@@ -21,3 +21,12 @@
 #define SYS_mkdir  20
 #define SYS_close  21
 #define SYS_yield  22
+#define SYS_sign_pa  23
+#define SYS_reset_avl  24
+#define SYS_get_pa_bit  25
+#define SYS_protect_p  26
+#define SYS_unprotect_p  27
+#define SYS_get_w_bit  28
+
+
+

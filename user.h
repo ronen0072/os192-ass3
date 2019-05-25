@@ -24,6 +24,12 @@ char* sbrk(int);
 int sleep(int);
 int uptime(void);
 int yield(void);
+int sign_pa(void * va);
+int reset_avl(void * va);
+int get_pa_bit(void * va);
+int get_w_bit(void * va);
+int protect_p(void * va);
+int unprotect_p(void * va);
 
 // ulib.c
 int stat(char*, struct stat*);
@@ -38,3 +44,5 @@ void* memset(void*, int, uint);
 void* malloc(uint);
 void free(void*);
 int atoi(const char*);
+void* pmalloc(void);
+int protect_page(void* ap);

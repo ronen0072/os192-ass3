@@ -49,6 +49,7 @@ sys_getpid(void)
   return myproc()->pid;
 }
 
+
 int
 sys_sbrk(void)
 {
@@ -96,3 +97,56 @@ sys_uptime(void)
   release(&tickslock);
   return xticks;
 }
+
+int sys_sign_pa(void){
+
+    void * va;
+    if(argint(0,(int *)(&va))<0)
+        return -1;
+    return sign_pa(va);
+
+}
+
+
+
+int sys_get_pa_bit(void){
+
+    void * va;
+    if(argint(0,(int *)(&va))<0)
+        return -1;
+    return get_pa_bit(va);
+
+}
+
+int sys_get_w_bit(void){
+
+    void * va;
+    if(argint(0,(int *)(&va))<0)
+        return -1;
+    return get_w_bit(va);
+
+}
+
+int sys_protect_p(void){
+
+    void * va;
+    if(argint(0,(int *)(&va))<0)
+        return -1;
+    return protect_p(va);
+
+}int sys_unprotect_p(void){
+
+    void * va;
+    if(argint(0,(int *)(&va))<0)
+        return -1;
+    return unprotect_p(va);
+
+}
+int sys_reset_avl(void){
+
+    void * va;
+    if(argint(0,(int *)(&va))<0)
+        return -1;
+    return reset_avl(va);
+}
+

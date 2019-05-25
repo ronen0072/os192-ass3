@@ -180,6 +180,7 @@ UPROGS=\
 	_wc\
 	_zombie\
 	_myMemTest\
+	_sanity\
 
 fs.img: mkfs README $(UPROGS)
 	./mkfs fs.img README $(UPROGS)

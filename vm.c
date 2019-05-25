@@ -15,18 +15,18 @@ pde_t *kpgdir;  // for use in scheduler()
 void
 seginit(void)
 {
-  struct cpu *c;
+    struct cpu *c;
 
-  // Map "logical" addresses to virtual addresses using identity map.
-  // Cannot share a CODE descriptor for both kernel and user
-  // because it would have to have DPL_USR, but the CPU forbids
-  // an interrupt from CPL=0 to DPL=3.
-  c = &cpus[cpuid()];
-  c->gdt[SEG_KCODE] = SEG(STA_X|STA_R, 0, 0xffffffff, 0);
-  c->gdt[SEG_KDATA] = SEG(STA_W, 0, 0xffffffff, 0);
-  c->gdt[SEG_UCODE] = SEG(STA_X|STA_R, 0, 0xffffffff, DPL_USER);
-  c->gdt[SEG_UDATA] = SEG(STA_W, 0, 0xffffffff, DPL_USER);
-  lgdt(c->gdt, sizeof(c->gdt));
+    // Map "logical" addresses to virtual addresses using identity map.
+    // Cannot share a CODE descriptor for both kernel and user
+    // because it would have to have DPL_USR, but the CPU forbids
+    // an interrupt from CPL=0 to DPL=3.
+    c = &cpus[cpuid()];
+    c->gdt[SEG_KCODE] = SEG(STA_X|STA_R, 0, 0xffffffff, 0);
+    c->gdt[SEG_KDATA] = SEG(STA_W, 0, 0xffffffff, 0);
+    c->gdt[SEG_UCODE] = SEG(STA_X|STA_R, 0, 0xffffffff, DPL_USER);
+    c->gdt[SEG_UDATA] = SEG(STA_W, 0, 0xffffffff, DPL_USER);
+    lgdt(c->gdt, sizeof(c->gdt));
 }
 
 // Return the address of the PTE in page table pgdir
@@ -54,6 +54,64 @@ pte_t * walkpgdir(pde_t *pgdir, const void *va, int alloc)
   return &pgtab[PTX(va)];
 }
 
+
+int protect_p(void * va){
+    pte_t *pte;
+    char *a = (char*)PGROUNDDOWN((uint)va);
+    if((pte = walkpgdir(myproc()->pgdir, a, 1)) == 0) // walkpgdir  fail
+        return -1;
+
+    *pte =(*pte) & 0xFFFFFFFD;
+    return 0;
+}
+
+int unprotect_p(void * va){
+    pte_t *pte;
+    char *a = (char*)PGROUNDDOWN((uint)va);
+    if((pte = walkpgdir(myproc()->pgdir, a, 1)) == 0) // walkpgdir  fail
+        return -1;
+    *pte =(*pte) | PTE_W ;
+    return 0;
+}
+
+int get_pa_bit(void * va){
+    pte_t *pte;
+    char *a = (char*)PGROUNDDOWN((uint)va);
+    if((pte = walkpgdir(myproc()->pgdir, a, 1)) == 0) // walkpgdir  fail
+        return -1;
+    uint pa_bit =(*pte) & PTE_PA;
+    pa_bit = pa_bit >> 10;
+    return pa_bit;
+}
+
+int get_w_bit(void * va){
+    pte_t *pte;
+    char *a = (char*)PGROUNDDOWN((uint)va);
+    if((pte = walkpgdir(myproc()->pgdir, a, 1)) == 0) // walkpgdir  fail
+        return -1;
+    uint pa_bit =(*pte) & PTE_W;
+    pa_bit = pa_bit >> 1;
+    return pa_bit;
+}
+
+int sign_pa(void * va){
+    pte_t *pte;
+    char *a = (char*)PGROUNDDOWN((uint)va);
+    if((pte = walkpgdir(myproc()->pgdir, a, 1)) == 0) // walkpgdir  fail
+        return -1;
+    *pte =(*pte) | PTE_PA; // sign that it was created with pmalloc
+    return 0;
+}
+
+// system call to set all PTE_P bits to  0
+int reset_avl(void * va){
+    pte_t *pte;
+    char *a = (char*)PGROUNDDOWN((uint)va);
+    if((pte = walkpgdir(myproc()->pgdir, a, 1)) == 0) // walkpgdir  fail
+        return -1;
+    *pte = (*pte) & 0xFFFFF8FF; // set PTE_P  bits to zero and sign as used
+    return 0;
+}
 // Create PTEs for virtual addresses starting at va that refer to
 // physical addresses starting at pa. va and size might not
 // be page-aligned.
