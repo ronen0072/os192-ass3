@@ -32,6 +32,20 @@ struct context {
   uint eip;
 };
 
+struct page
+{
+    uint va;
+    uint inUesd;			// when 0-> free 1-> inUesd
+    void* mem;
+    uint ctime;
+
+};
+struct pageArray
+{
+    int size;
+    struct page pages[MAX_PSYC_PAGES];
+};
+
 enum procstate { UNUSED, EMBRYO, SLEEPING, RUNNABLE, RUNNING, ZOMBIE };
 
 // Per-process state
@@ -50,8 +64,15 @@ struct proc {
   struct inode *cwd;           // Current directory
   char name[16];               // Process name (debugging)
 
+  //memory satistic
+  uint pgflt;
+  uint pgout;
+
   //Swap file. must initiate with create swap file
-  struct file *swapFile;      //page file
+  struct file *swapFile;       // page file
+  struct pageArray SWAPpgs;	   // pages in swap file metadata..
+  struct pageArray RAMpgs;	   // pages in RAM list metadata..
+
 };
 
 // Process memory is laid out contiguously, low addresses first:

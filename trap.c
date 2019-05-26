@@ -32,6 +32,28 @@ idtinit(void)
   lidt(idt, sizeof(idt));
 }
 
+int
+pagefault(uint raddr)
+{
+    struct proc * p = myproc();
+    int indx;
+    pte_t * pte = walkpgdir(p->pgdir, (const void*)raddr, 0);
+    //if(((uint)*pte & PTE_P))
+    //panic("pagefault:: pte present");
+    //return 0;
+
+    if(!((uint)*pte & PTE_PG))
+        return 0;
+    // choose page to swap and swapout -> swapin..
+    if(p->RAMpgs.size == MAX_PSYC_PAGES)
+    {
+        indx = choosePageToSwapOut(p);
+        swapOut(indx, p);
+    }
+    swapIn(raddr, p);
+    return 1;
+}
+
 //PAGEBREAK: 41
 void
 trap(struct trapframe *tf)
@@ -77,7 +99,13 @@ trap(struct trapframe *tf)
             cpuid(), tf->cs, tf->eip);
     lapiceoi();
     break;
-
+  #ifndef NONE
+  case T_PGFLT:
+      //cprintf("page fault\n");
+      myproc()->pgflt++;
+      if (pagefault(PGROUNDDOWN(rcr2())))
+          return;
+  #endif
   //PAGEBREAK: 13
   default:
     if(myproc() == 0 || (tf->cs&3) == 0){

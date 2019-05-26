@@ -809,5 +809,24 @@ readFromSwapFile(struct proc * p, char* buffer, uint placeOnFile, uint size)
   return fileread(p->swapFile, buffer,  size);
 }
 
+int
+copySwapFile(struct proc* p, struct proc* np)
+{
+    struct stat filestats;
+    char buffer[MAX_PSYC_PAGES * PGSIZE];
+
+    // get files stats..
+    if(filestat(p->swapFile, &filestats) == -1)
+        panic("copySwapFile:: Failed to get the stats of file... :(");
+
+    //read from old file to temporary buffer
+    if(readFromSwapFile(p, buffer, 0, filestats.size) == -1)
+        panic("copySwapFile:: Failed to read from file :(");
+
+    //write to new file..
+    if(writeToSwapFile(np, buffer, 0, filestats.size) == -1)
+        panic("copySwapFile:: Failed to write to file :(");
+    return 0;
+}
 
 

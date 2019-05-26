@@ -9,6 +9,9 @@ struct spinlock;
 struct sleeplock;
 struct stat;
 struct superblock;
+struct pageArray;
+typedef uint pte_t;
+
 
 // bio.c
 void            binit(void);
@@ -52,10 +55,12 @@ struct inode*   nameiparent(char*, char*);
 int             readi(struct inode*, char*, uint, uint);
 void            stati(struct inode*, struct stat*);
 int             writei(struct inode*, char*, uint, uint);
-int		createSwapFile(struct proc* p);
-int		readFromSwapFile(struct proc * p, char* buffer, uint placeOnFile, uint size);
-int		writeToSwapFile(struct proc* p, char* buffer, uint placeOnFile, uint size);
-int		removeSwapFile(struct proc* p);
+int		        createSwapFile(struct proc* p);
+int		        readFromSwapFile(struct proc * p, char* buffer, uint placeOnFile, uint size);
+int		        writeToSwapFile(struct proc* p, char* buffer, uint placeOnFile, uint size);
+int		        removeSwapFile(struct proc* p);
+int 			copySwapFile(struct proc*, struct proc*);
+
 
 // ide.c
 void            ideinit(void);
@@ -182,6 +187,7 @@ void            uartputc(int);
 void            seginit(void);
 void            kvmalloc(void);
 pde_t*          setupkvm(void);
+pte_t*			walkpgdir(pde_t *, const void *, int);
 char*           uva2ka(pde_t*, char*);
 int             allocuvm(pde_t*, uint, uint);
 int             deallocuvm(pde_t*, uint, uint);
@@ -193,6 +199,18 @@ void            switchuvm(struct proc*);
 void            switchkvm(void);
 int             copyout(pde_t*, uint, void*, uint);
 void            clearpteu(pde_t *pgdir, char *uva);
+int             insertRAMPgs(void* va, void* mem);
+int             insertSwaPpgs(void* va, void* mem);
+
+//utils.c
+void			clearbit(uint*, uint);
+void			addbit(uint*, uint);
+int				findUnuesd(struct pageArray*);
+int				findVA(struct pageArray*,uint);
+int				swapIn(uint, struct proc*);
+int				swapOut(int, struct proc*);
+int				choosePageToSwapOut(struct proc* p);
+
 
 // number of elements in fixed-size array
 #define NELEM(x) (sizeof(x)/sizeof((x)[0]))

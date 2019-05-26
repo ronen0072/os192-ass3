@@ -196,6 +196,17 @@ fork(void)
     np->state = UNUSED;
     return -1;
   }
+
+  memmove(&(np->SWAPpgs), &(curproc->SWAPpgs), 2* sizeof(struct pageArray));
+  #ifndef NONE
+  if(curproc != initproc){
+    createSwapFile(np);
+    copySwapFile(curproc, np);
+    np->pgflt = 0;
+    np->pgout = 0;
+  }
+  #endif
+
   np->sz = curproc->sz;
   np->parent = curproc;
   *np->tf = *curproc->tf;
@@ -247,7 +258,15 @@ exit(void)
   end_op();
   curproc->cwd = 0;
 
-  acquire(&ptable.lock);
+  #ifndef NONE
+  if(curproc->pid > DEFAULT_PROCESSES) {
+    // deleting back store...
+    removeSwapFile(curproc);
+    //reset data structers..
+    memset(&(curproc->SWAPpgs), 0, 2 * sizeof(struct pageArray));
+  }
+  #endif
+    acquire(&ptable.lock);
 
   // Parent might be sleeping in wait().
   wakeup1(curproc->parent);

@@ -35,6 +35,13 @@ exec(char *path, char **argv)
   if(elf.magic != ELF_MAGIC)
     goto bad;
 
+  //Remove Old swapFile and creating new one..
+  if(myproc()->pid > 1){
+      removeSwapFile(curproc);
+      createSwapFile(curproc);
+      memset(&(curproc->SWAPpgs), 0, 2*sizeof(struct pageArray));
+  }
+
   if((pgdir = setupkvm()) == 0)
     goto bad;
 

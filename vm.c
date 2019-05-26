@@ -32,8 +32,7 @@ seginit(void)
 // Return the address of the PTE in page table pgdir
 // that corresponds to virtual address va.  If alloc!=0,
 // create any required page table pages.
-static pte_t *
-walkpgdir(pde_t *pgdir, const void *va, int alloc)
+pte_t * walkpgdir(pde_t *pgdir, const void *va, int alloc)
 {
   pde_t *pde;
   pte_t *pgtab;
@@ -41,7 +40,8 @@ walkpgdir(pde_t *pgdir, const void *va, int alloc)
   pde = &pgdir[PDX(va)];
   if(*pde & PTE_P){
     pgtab = (pte_t*)P2V(PTE_ADDR(*pde));
-  } else {
+  }
+  else {
     if(!alloc || (pgtab = (pte_t*)kalloc()) == 0)
       return 0;
     // Make sure all those PTE_P bits are zero.
@@ -215,6 +215,75 @@ loaduvm(pde_t *pgdir, char *addr, struct inode *ip, uint offset, uint sz)
   }
   return 0;
 }
+//----------------------------------------------------------------
+
+
+int insertSwaPpgs(void* va, void* mem){
+    struct proc* curproc = myproc();
+    pte_t* pte = walkpgdir(curproc->pgdir, va, 0);
+
+    if(!(*pte))
+        panic("insertSwaPpgs :: Page Table Entry is not valid !!!!");
+
+    int findx = findUnuesd(&(curproc->SWAPpgs));
+    if(findx == -1)
+        panic("insertSwaPpgs :: Swap file is full :(");
+
+    curproc->SWAPpgs.pages[findx].va = (uint) va;
+    curproc->SWAPpgs.pages[findx].inUesd = 1;
+    curproc->SWAPpgs.pages[findx].mem = 0;
+    curproc->SWAPpgs.size++;
+    curproc->pgout++;
+    if(writeToSwapFile(curproc, mem, findx * PGSIZE, PGSIZE) == -1)
+        panic("insertSwaPpgs :: Failed to write to swapfile.. :(");
+    *pte = (*pte | PTE_PG) & ~PTE_P;
+    lcr3(V2P (curproc->pgdir));
+
+    return findx;
+}
+
+int insertRAMPgs(void* va, void* mem){
+    struct proc* curproc = myproc();
+
+    int findx = findUnuesd(&(curproc->RAMpgs));
+    if(findx == -1)
+        panic("insertRAMPgs:: no place RAM DB.. :(");
+
+    curproc->RAMpgs.pages[findx].inUesd = 1;
+    curproc->RAMpgs.pages[findx].va = (uint) va;
+    curproc->RAMpgs.pages[findx].mem = mem;
+    curproc->RAMpgs.pages[findx].ctime = ticks;
+    curproc->RAMpgs.size++;
+    return findx;
+}
+
+void addPages(void* va,void* mem){
+    struct proc* curproc = myproc();
+    if (curproc->pid <= DEFAULT_PROCESSES )
+        return;
+    uint RAMpgs = curproc->RAMpgs.size;
+    uint SWAPpgs = curproc->SWAPpgs.size;
+
+    if(SWAPpgs + RAMpgs > 31){
+        cprintf("addPages:: TO MANY PAGES IN THE PROCESS.. :(\n");
+        exit();
+    }
+    if(RAMpgs > 16)
+        panic("addPages:: TO MANY PAGES IN RAM.. :(");
+    if(SWAPpgs > 16)
+        panic("addPages:: TO MANY PAGES IN SWAP.. :(");
+
+    // if RAM pages is 16 we need to swap.. !!
+    if(RAMpgs == 16){
+        insertSwaPpgs(va, mem);
+        kfree(mem);
+    }
+    else
+        insertRAMPgs(va, mem);
+
+}
+
+//----------------------------------------------------------------
 
 // Allocate page tables and physical memory to grow process from oldsz to
 // newsz, which need not be page aligned.  Returns new size or 0 on error.
@@ -244,9 +313,35 @@ allocuvm(pde_t *pgdir, uint oldsz, uint newsz)
       kfree(mem);
       return 0;
     }
+    #ifndef NONE
+      addPages((char*)a, mem);
+    #endif
   }
   return newsz;
 }
+
+//------------------------------------------------------------------
+void removePages(void * va){
+    struct proc* curproc = myproc();
+    int indx = findVA(&(curproc->SWAPpgs), (uint)va);
+    if(indx == -1)
+        goto secondChance;
+    curproc->SWAPpgs.pages[indx].inUesd = 0;
+    curproc->SWAPpgs.size--;
+    return;
+
+    secondChance:
+    indx = findVA(&(curproc->RAMpgs), (uint)va);
+    if(indx == -1) {
+        //panic("removePages:: not find in DBs.. :(");
+        return;
+    }
+
+    curproc-> RAMpgs.pages[indx].inUesd = 0;
+    curproc->RAMpgs.size--;
+}
+//------------------------------------------------------------------
+
 
 // Deallocate user pages to bring the process size from oldsz to
 // newsz.  oldsz and newsz need not be page-aligned, nor does newsz
@@ -274,6 +369,12 @@ deallocuvm(pde_t *pgdir, uint oldsz, uint newsz)
       kfree(v);
       *pte = 0;
     }
+
+    #ifndef NONE
+    if(myproc()->pid > DEFAULT_PROCESSES && myproc()->pgdir == pgdir)
+      removePages((char*)a);
+    #endif
+
   }
   return newsz;
 }
@@ -327,6 +428,13 @@ copyuvm(pde_t *pgdir, uint sz)
       panic("copyuvm: pte should exist");
     if(!(*pte & PTE_P))
       panic("copyuvm: page not present");
+
+    if (*pte & PTE_PG) {
+      pte = walkpgdir(d, (void*) i, 1);
+      *pte = PTE_U | PTE_W | PTE_PG;
+      continue;
+    }
+
     pa = PTE_ADDR(*pte);
     flags = PTE_FLAGS(*pte);
     if((mem = kalloc()) == 0)

@@ -15,6 +15,7 @@ OBJS = \
 	picirq.o\
 	pipe.o\
 	proc.o\
+	utils.o\
 	sleeplock.o\
 	spinlock.o\
 	string.o\
@@ -69,6 +70,10 @@ QEMU = $(shell if which qemu > /dev/null; \
 	echo "*** Is the directory containing the qemu binary in your PATH" 1>&2; \
 	echo "*** or have you tried setting the QEMU variable in Makefile?" 1>&2; \
 	echo "***" 1>&2; exit 1)
+endif
+
+ifndef SELECTION
+	SELECTION := SCFIFO
 endif
 
 CC = $(TOOLPREFIX)gcc
@@ -174,6 +179,7 @@ UPROGS=\
 	_usertests\
 	_wc\
 	_zombie\
+	_myMemTest\
 
 fs.img: mkfs README $(UPROGS)
 	./mkfs fs.img README $(UPROGS)
