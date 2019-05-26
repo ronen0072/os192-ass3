@@ -210,7 +210,7 @@ main()
 	//first-> allocate 20 pages, write in lineric, meaning write each
 	// page i the number i, and read it.
 	//Sanity Test...
-	mySimpleTets();
+	//mySimpleTets();
 	doubleProcess();
 	segTest();
 	forktests();

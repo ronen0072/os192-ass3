@@ -201,7 +201,12 @@ int             copyout(pde_t*, uint, void*, uint);
 void            clearpteu(pde_t *pgdir, char *uva);
 int             insertRAMPgs(void* va, void* mem);
 int             insertSwaPpgs(void* va, void* mem);
-
+int             sign_pa(void* va);
+int             reset_avl(void* va);
+int             get_pa_bit(void* va);
+int             get_w_bit(void* va);
+int             unprotect_p(void* va);
+int             protect_p(void* vamy);
 //utils.c
 void			clearbit(uint*, uint);
 void			addbit(uint*, uint);
