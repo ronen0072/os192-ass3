@@ -46,3 +46,4 @@ void free(void*);
 int atoi(const char*);
 void* pmalloc(void);
 int protect_page(void* ap);
+int pfree(void* ap);

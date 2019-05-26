@@ -226,7 +226,18 @@ int protect_page(void* ap){
     return 1;
 
 }
+
 int pfree(void* ap){
-    return 0;
+
+    if(get_pa_bit(ap) == 0 /*|| get_w_bit(ap) == 1*/) // page is not pmalloced
+        return -1;
+    unprotect_p(ap);
+    if((uint)ap % PAGE_SIZE != 0) // not starting point of page
+        return -1;
+    reset_avl(ap);// reset avl bits;
+    free(ap);
+    return 1;
+
+
 }
 
