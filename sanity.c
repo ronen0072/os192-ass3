@@ -4,7 +4,7 @@
 #include "fcntl.h"
 
 #define PAGE_SIZE 4096
-#define H_SIZE 4
+#define H_SIZE 8
 
 int testnum = 20;
 int success=0, fail=0,ans=0, fibNum=10,mid=-1;
