@@ -496,6 +496,7 @@ copyuvm(pde_t *pgdir, uint sz)
     if (*pte & PTE_PG) {
       pte = walkpgdir(d, (void*) i, 1);
       *pte = PTE_U | PTE_W | PTE_PG;
+        lcr3(V2P(myproc()->pgdir));
       continue;
     }
 

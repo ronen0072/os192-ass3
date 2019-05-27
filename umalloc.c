@@ -151,7 +151,7 @@ void * malloc(uint size) {
 
 // sign that page was allocated with pmalloc
 boolean init_pmalloc(void * page){
-    if (reset_avl(page) == -1 || sign_pa(page) == -1 )
+    if (/*reset_avl(page) == -1 || */sign_pa(page) == -1 )
         return false;
     return true;
 }
@@ -234,7 +234,7 @@ int pfree(void* ap){
     unprotect_p(ap);
     if((uint)ap % PAGE_SIZE != 0) // not starting point of page
         return -1;
-    reset_avl(ap);// reset avl bits;
+   // reset_avl(ap);// reset avl bits;
     free(ap);
     return 1;
 

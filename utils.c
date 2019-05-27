@@ -27,10 +27,12 @@ void sort(struct pageArray* RAMpgs, int n){
 // TODO -> check impl
 void clearbit (uint* dest, uint mask){
 	(*dest) = ((*dest) & (~mask));
+    lcr3(V2P(myproc()->pgdir));
 }
 
 void addbit(uint* dest, uint mask){
 	(*dest) = ((*dest) | (mask));
+    lcr3(V2P(myproc()->pgdir));
 }
 
 
@@ -158,5 +160,6 @@ int swapIn(uint va, struct proc* p){
   SWAPpgs->size--;
 
   *pte = V2P(mem) | PTE_P | PTE_U | PTE_W;
+    lcr3(V2P(myproc()->pgdir));
   return 1;
 }
