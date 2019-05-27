@@ -113,21 +113,56 @@ int choosePageToSwapOut(struct proc* p){
 
 }
 
-int swapOut(int indx, struct proc* p){
-  struct pageArray * RAMpgs  = &(p->RAMpgs);
-  struct pageArray * SWAPpgs = &(p->SWAPpgs);
+//int swapOut(int indx, struct proc* p){
+//  struct pageArray * RAMpgs  = &(p->RAMpgs);
+//  struct pageArray * SWAPpgs = &(p->SWAPpgs);
+//
+//  if(SWAPpgs->size == 16)
+//	  panic("SwapOut :: Swap File is full!!");
+//
+//  // getting file to swap out meta data
+//  struct page tswap = RAMpgs->pages[indx];
+//  insertSwaPpgs((char*)tswap.va, tswap.mem);
+//
+//  RAMpgs->pages[indx].inUesd = 0;
+//  RAMpgs->size--;
+//
+//  return 1;
+//}
 
-  if(SWAPpgs->size == 16)
-	  panic("SwapOut :: Swap File is full!!");
+int swapOut(int indx, struct proc* p, uint addr){
+    struct pageArray * RAMpgs  = &(p->RAMpgs);
+    struct pageArray * SWAPpgs = &(p->SWAPpgs);
+    int sindx = findVA(SWAPpgs,addr);
 
-  // getting file to swap out meta data
-  struct page tswap = RAMpgs->pages[indx];
-  insertSwaPpgs((char*)tswap.va, tswap.mem);
 
-  RAMpgs->pages[indx].inUesd = 0;
-  RAMpgs->size--;
+    // getting file to swap out meta data
+    uint va = RAMpgs->pages[indx].va;
+    void * mem = RAMpgs->pages[indx].mem;
+    RAMpgs->pages[indx].ctime = 0;
+    RAMpgs->pages[indx].inUesd = 0;
+    RAMpgs->size--;
 
-  return 1;
+    void * smem = kalloc();
+    if(!mem){
+        cprintf("swapIn:: Out of memory\n");
+        return 0;
+    }
+    pte_t * pte = walkpgdir(p->pgdir, (char*)addr, 0);
+
+    readFromSwapFile(p, smem, sindx*PGSIZE, PGSIZE);
+    insertRAMPgs((char*)addr,smem);
+
+    *pte = V2P(smem) | PTE_P | PTE_U ;
+    lcr3(V2P(myproc()->pgdir));
+
+    SWAPpgs->pages[sindx].inUesd = 0;
+    SWAPpgs->size--;
+
+    insertSwaPpgs((char*)va,mem);
+
+
+    return 1;
 }
 
 // 0-> error, 1-> success

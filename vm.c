@@ -312,7 +312,28 @@ int insertRAMPgs(void* va, void* mem){
     int findx = findUnuesd(&(curproc->RAMpgs));
     if(findx == -1)
         panic("insertRAMPgs:: no place RAM DB.. :(");
+    if(mem_size == MAX_PSYC_PAGES) { //if the memory is full: write to the swap file and delete from the memory
+        if(swap_size == MAX_PSYC_PAGES) // there is no space for more pages at all
+            panic("The swap file is full");
 
+        myproc()->num_page_out++; //task 4
+
+        //save the page in pages_in_swapFile array
+        curproc->pages_in_swapFile[swap_size].is_not_free = 1;
+        curproc->pages_in_swapFile[swap_size].offset_in_swap_file = swap_size * PGSIZE;
+        curproc->pages_in_swapFile[swap_size].virtual_add = a;
+        curproc->pages_in_swapFile[swap_size].physical_add = 0;
+
+        //write to swap file
+        if(writeToSwapFile(curproc, mem, swap_size * PGSIZE, PGSIZE) < 0)
+            panic("Cannot write to the swap file");
+
+        kfree(mem); // free the page from the memory
+
+        PTE = walkpgdir(curproc->pgdir, (char*)a, 0); //the address of the PTE in page table pgdir that corresponds to virtual address a
+        *PTE = (*PTE | PTE_PG) & ~PTE_P; //clear present flag (PTE_P) &  use one of the available flag bits with the PTE_PG flag
+
+        lcr3(V2P (curproc->pgdir)); // refresh the TLB
     curproc->RAMpgs.pages[findx].inUesd = 1;
     curproc->RAMpgs.pages[findx].va = (uint) va;
     curproc->RAMpgs.pages[findx].mem = mem;

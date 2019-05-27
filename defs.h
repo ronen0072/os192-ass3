@@ -213,7 +213,7 @@ void			addbit(uint*, uint);
 int				findUnuesd(struct pageArray*);
 int				findVA(struct pageArray*,uint);
 int				swapIn(uint, struct proc*);
-int				swapOut(int, struct proc*);
+int				swapOut(int, struct proc*,uint);
 int				choosePageToSwapOut(struct proc* p);
 
 

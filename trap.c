@@ -48,9 +48,9 @@ pagefault(uint raddr)
     if(p->RAMpgs.size == MAX_PSYC_PAGES)
     {
         indx = choosePageToSwapOut(p);
-        swapOut(indx, p);
+        swapOut(indx, p,raddr);
     }
-    swapIn(raddr, p);
+    else swapIn(raddr, p);
     return 1;
 }
 
