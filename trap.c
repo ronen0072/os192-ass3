@@ -32,26 +32,61 @@ idtinit(void)
   lidt(idt, sizeof(idt));
 }
 
-int
+void
 pagefault(uint raddr)
 {
+    cprintf("PAGEFAULDLE\n");
     struct proc * p = myproc();
     int indx;
     pte_t * pte = walkpgdir(p->pgdir, (const void*)raddr, 0);
-    //if(((uint)*pte & PTE_P))
-    //panic("pagefault:: pte present");
-    //return 0;
-
-    if(!((uint)*pte & PTE_PG))
-        return 0;
-    // choose page to swap and swapout -> swapin..
-    if(p->RAMpgs.size == MAX_PSYC_PAGES)
-    {
-        indx = choosePageToSwapOut(p);
-        swapOut(indx, p,raddr);
+    if(!pte) {
+        cprintf("segmentation fault:: page doesn't exist\n");
+        p->killed = 1;
+        return;
     }
-    else swapIn(raddr, p);
-    return 1;
+    if(*pte & PTE_P) {
+        if(!(*pte & PTE_U)) {
+            cprintf("segmentation fault:: page doesn't belong to user, address %x, %x\n", raddr, *pte & 0xfff);
+            p->killed = 1;
+            return;
+        } else { //
+            if(*pte & PTE_W) {
+                panic("TODO fix xv6\n");
+            }
+            cprintf("segmentation fault:: page is not writable\n");
+            p->killed = 1;
+            return;
+        }
+    } else {
+
+        if(!(*pte & PTE_PG )) { // page is not in disk
+            panic("segmentation fault:: page not in disk\n");
+
+        }
+        else{
+            if(p->RAMpgs.size == MAX_PSYC_PAGES)
+            {
+                cprintf("&^(^#*^#(^*\naddress %d, %x\n", raddr / PGSIZE, *pte & 0xfff);
+                indx = choosePageToSwapOut(p);
+                swapOut(indx, p,raddr);
+            }
+            else swapIn(raddr, p);
+            return;
+        }
+    }
+//    if(*pte &  (PTE_P | PTE_U)) { // page is not in memory but not users
+//        cprintf("segmentation fault:: page doesn't belong to user\n");
+//        p->killed = 1;
+//        return;
+//    }
+//    if(((uint)*pte & PTE_P))  // page is in memory
+//        panic("pagefault:: pte present");
+//    //return 0;
+
+
+    // choose page to swap and swapout -> swapin..
+    // / page is in disk
+
 }
 
 //PAGEBREAK: 41
@@ -101,10 +136,20 @@ trap(struct trapframe *tf)
     break;
   #ifndef NONE
   case T_PGFLT:
-      //cprintf("page fault\n");
-      myproc()->pgflt++;
-      if (pagefault(PGROUNDDOWN(rcr2())))
-          return;
+      cprintf("page fault\n");
+      //void * add = (void*)rcr2();
+      //struct proc *p = myproc();
+      if(myproc() && (tf->cs&3) == DPL_USER) {
+         // handlePageFault(p, add);
+          pagefault(PGROUNDDOWN(rcr2()));
+          break;
+      } else {
+          panic("Page Fault in kernel!!!!!\n");
+      }
+//      myproc()->pgflt++;
+//
+//      if (pagefault(PGROUNDDOWN(rcr2())))
+//          return;
   #endif
   //PAGEBREAK: 13
   default:

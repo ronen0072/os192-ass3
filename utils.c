@@ -138,30 +138,39 @@ int swapOut(int indx, struct proc* p, uint addr){
 
     // getting file to swap out meta data
     uint va = RAMpgs->pages[indx].va;
-    void * mem = RAMpgs->pages[indx].mem;
+//    void * mem = RAMpgs->pages[indx].mem;
+    pte_t * pte_1 = walkpgdir(p->pgdir, (char*)va, 0);
+    uint pa = *pte_1 & ~0xfff;
+    void * mem = (void *)P2V(pa);
+
     RAMpgs->pages[indx].ctime = 0;
     RAMpgs->pages[indx].inUesd = 0;
     RAMpgs->size--;
 
     void * smem = kalloc();
-    if(!mem){
+    if(!smem){
         cprintf("swapIn:: Out of memory\n");
         return 0;
     }
+
+
+
     pte_t * pte = walkpgdir(p->pgdir, (char*)addr, 0);
 
     readFromSwapFile(p, smem, sindx*PGSIZE, PGSIZE);
     insertRAMPgs((char*)addr,smem);
+    uint flags = *pte & 0xfff;
 
-    *pte = V2P(smem) | PTE_P | PTE_U ;
-    lcr3(V2P(myproc()->pgdir));
+    *pte = V2P(smem)| flags | PTE_P ;
+    *pte &= ~PTE_PG;
+
 
     SWAPpgs->pages[sindx].inUesd = 0;
     SWAPpgs->size--;
 
     insertSwaPpgs((char*)va,mem);
-
-
+    kfree(mem);
+    lcr3(V2P(myproc()->pgdir));
     return 1;
 }
 
@@ -194,7 +203,9 @@ int swapIn(uint va, struct proc* p){
   SWAPpgs->pages[OutIndx].inUesd = 0;
   SWAPpgs->size--;
 
-  *pte = V2P(mem) | PTE_P | PTE_U | PTE_W;
-    lcr3(V2P(myproc()->pgdir));
+  uint flags = *pte & 0xfff;
+  *pte = V2P(mem)| flags | PTE_P ;
+  *pte &= ~PTE_PG;
+  lcr3(V2P(myproc()->pgdir));
   return 1;
 }

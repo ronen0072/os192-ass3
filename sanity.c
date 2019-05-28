@@ -89,7 +89,13 @@ void test_protected(){
 
 
 }
-
+void test_z(){
+    uint sz = (uint) sbrk(0);
+    printf(1, "proc size %d\n", (sz)/PAGE_SIZE+ (sz%PAGE_SIZE !=0));
+  sbrk(18*4096-sz);
+    sz = (uint) sbrk(0);
+    printf(1, "proc size %d\n", (sz)/PAGE_SIZE+ (sz%PAGE_SIZE !=0));
+}
 void test_pfree_sanity(){
     void * page = pmalloc();
     void * mem = malloc(4096);
@@ -163,16 +169,21 @@ void make_test(void (*f)(void) , int expected ,char * test_name){
 }
 
 
-int main(void){
+int main(void) {
 
     // __________________MALLOC___________________
-    make_test(test_malloc, 2, "test_malloc");
+    // make_test(test_malloc, 2, "test_malloc");
 
+    printf(1, "fib address %x\n", fib);
     // _________________PMALLOC_PROTECT_PFREE_____________
-    make_test(test_pmalloc_sanity, 1, "test_pmalloc_sanity");
-    make_test(test_protected, 1, "test_protected");
-    make_test(test_pfree_sanity, 2, "test_pfree_sanity");
-    make_test(test_flag_clearing, 3, "test_flag_clearing");
+  //  make_test(test_z, 0, "test_z");
+    for (int i = 0; i < 6; i++){
+       make_test(test_pmalloc_sanity, 1, "test_pmalloc_sanity");
+     //   make_test(test_malloc, 2, "test_malloc");
+}
+  //  make_test(test_protected, 1, "test_protected");
+   // make_test(test_pfree_sanity, 2, "test_pfree_sanity");
+   // make_test(test_flag_clearing, 3, "test_flag_clearing");
 
 
 

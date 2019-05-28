@@ -284,10 +284,7 @@ loaduvm(pde_t *pgdir, char *addr, struct inode *ip, uint offset, uint sz)
 
 int insertSwaPpgs(void* va, void* mem){
     struct proc* curproc = myproc();
-    pte_t* pte = walkpgdir(curproc->pgdir, va, 0);
 
-    if(!(*pte))
-        panic("insertSwaPpgs :: Page Table Entry is not valid !!!!");
 
     int findx = findUnuesd(&(curproc->SWAPpgs));
     if(findx == -1)
@@ -300,8 +297,12 @@ int insertSwaPpgs(void* va, void* mem){
     curproc->pgout++;
     if(writeToSwapFile(curproc, mem, findx * PGSIZE, PGSIZE) == -1)
         panic("insertSwaPpgs :: Failed to write to swapfile.. :(");
+
+    pte_t* pte = walkpgdir(curproc->pgdir, va, 0);
+    if(!(*pte))
+        panic("insertSwaPpgs :: Page Table Entry is not valid !!!!");
+
     *pte = (*pte | PTE_PG) & ~PTE_P;
-    lcr3(V2P (curproc->pgdir));
 
     return findx;
 }
@@ -312,28 +313,7 @@ int insertRAMPgs(void* va, void* mem){
     int findx = findUnuesd(&(curproc->RAMpgs));
     if(findx == -1)
         panic("insertRAMPgs:: no place RAM DB.. :(");
-    if(mem_size == MAX_PSYC_PAGES) { //if the memory is full: write to the swap file and delete from the memory
-        if(swap_size == MAX_PSYC_PAGES) // there is no space for more pages at all
-            panic("The swap file is full");
 
-        myproc()->num_page_out++; //task 4
-
-        //save the page in pages_in_swapFile array
-        curproc->pages_in_swapFile[swap_size].is_not_free = 1;
-        curproc->pages_in_swapFile[swap_size].offset_in_swap_file = swap_size * PGSIZE;
-        curproc->pages_in_swapFile[swap_size].virtual_add = a;
-        curproc->pages_in_swapFile[swap_size].physical_add = 0;
-
-        //write to swap file
-        if(writeToSwapFile(curproc, mem, swap_size * PGSIZE, PGSIZE) < 0)
-            panic("Cannot write to the swap file");
-
-        kfree(mem); // free the page from the memory
-
-        PTE = walkpgdir(curproc->pgdir, (char*)a, 0); //the address of the PTE in page table pgdir that corresponds to virtual address a
-        *PTE = (*PTE | PTE_PG) & ~PTE_P; //clear present flag (PTE_P) &  use one of the available flag bits with the PTE_PG flag
-
-        lcr3(V2P (curproc->pgdir)); // refresh the TLB
     curproc->RAMpgs.pages[findx].inUesd = 1;
     curproc->RAMpgs.pages[findx].va = (uint) va;
     curproc->RAMpgs.pages[findx].mem = mem;
@@ -361,6 +341,8 @@ void addPages(void* va,void* mem){
     // if RAM pages is 16 we need to swap.. !!
     if(RAMpgs == 16){
         insertSwaPpgs(va, mem);
+        lcr3(V2P(myproc()->pgdir));
+
         kfree(mem);
     }
     else
@@ -384,6 +366,10 @@ allocuvm(pde_t *pgdir, uint oldsz, uint newsz)
     return oldsz;
 
   a = PGROUNDUP(oldsz);
+   #ifndef NONE
+    if(myproc()->pid > DEFAULT_PROCESSES && PGROUNDUP(oldsz)/PGSIZE>32)
+        panic("PROC has more then 32 pages\n");
+   #endif
   for(; a < newsz; a += PGSIZE){
     mem = kalloc();
     if(mem == 0){
@@ -409,17 +395,15 @@ allocuvm(pde_t *pgdir, uint oldsz, uint newsz)
 void removePages(void * va){
     struct proc* curproc = myproc();
     int indx = findVA(&(curproc->SWAPpgs), (uint)va);
-    if(indx == -1)
-        goto secondChance;
-    curproc->SWAPpgs.pages[indx].inUesd = 0;
-    curproc->SWAPpgs.size--;
-    return;
+    if(indx != -1) {
+        curproc->SWAPpgs.pages[indx].inUesd = 0;
+        curproc->SWAPpgs.size--;
+        return;
+    }
 
-    secondChance:
     indx = findVA(&(curproc->RAMpgs), (uint)va);
     if(indx == -1) {
-        //panic("removePages:: not find in DBs.. :(");
-        return;
+        panic("removePages:: not find in DBs.. :(");
     }
 
     curproc-> RAMpgs.pages[indx].inUesd = 0;
@@ -484,7 +468,7 @@ freevm(pde_t *pgdir)
 }
 
 // Clear PTE_U on a page. Used to create an inaccessible
-// page beneath the user stack.
+// page beneath the user stack.freevm
 void
 clearpteu(pde_t *pgdir, char *uva)
 {
@@ -513,13 +497,13 @@ copyuvm(pde_t *pgdir, uint sz)
       panic("copyuvm: pte should exist");
     if(!(*pte & PTE_P))
       panic("copyuvm: page not present");
-
-    if (*pte & PTE_PG) {
-      pte = walkpgdir(d, (void*) i, 1);
-      *pte = PTE_U | PTE_W | PTE_PG;
-        lcr3(V2P(myproc()->pgdir));
-      continue;
-    }
+//
+//    if (*pte & PTE_PG) {
+//      pte = walkpgdir(d, (void*) i, 1);
+//      *pte = PTE_U | PTE_W | PTE_PG;
+//        lcr3(V2P(myproc()->pgdir));
+//      continue;
+//    }
 
     pa = PTE_ADDR(*pte);
     flags = PTE_FLAGS(*pte);
