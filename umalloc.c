@@ -114,7 +114,6 @@ static inline Header * split(Header * max, uint size) {
 }
 
 void * malloc(uint size) {
-
     Header *max = freep;
     Header *max_perv = freep;
     Header *h_prev = freep;
@@ -154,60 +153,77 @@ void * malloc(uint size) {
 
 // sign that page was allocated with pmalloc
 boolean init_pmalloc(void * page){
-    if (/*reset_avl(page) == -1 || */sign_pa(page) == -1 )
+    if (sign_pa(page) == -1 )
         return false;
     return true;
 }
 
 void* pmalloc(){
-    Header * h = (Header*)malloc(PAGE_SIZE*2+ sizeof(Header) + 2);
-
-    if(h == 0)
+//malloc a spare size (double+h+2)
+    void * chunk= malloc(PAGE_SIZE*2+ sizeof(Header)*2);
+    if(chunk == 0)
         return 0;
+    Header* h = ((Header*)chunk) - 1; // get the header
 
-    --h;
-
-    uint chunk_size = h->size;
-    uint sizeOfHeader = sizeof *h;
+    uint chunk_size= h->size;
+    uint sizeOfHeader = sizeof(Header);
     //if adress is page-aligned split the chunk else make page page-aligned and then split.
-    uint reminder = (uint)h % PAGE_SIZE;
-    char *ans = (char *)h;
-    if(reminder == 0) {
-        h = (Header*)(ans + PAGE_SIZE);
-        h->size = chunk_size - PAGE_SIZE;
-        free(h+1);
+    if((uint)chunk % PAGE_SIZE == 0) {
+        h->size = PAGE_SIZE; //
+        Header * rest = ((Header *) (chunk + PAGE_SIZE));
+        rest->size = chunk_size - PAGE_SIZE - sizeOfHeader;
+        rest->next=h->next;
+        h->next=rest;
+        void * rest_addr = chunk + PAGE_SIZE + sizeOfHeader;
+        free(rest_addr);// return rest of the chunk back to stock
+        if(init_pmalloc(chunk) == false){
+            free(chunk);
+            return 0;
+        }
+        return chunk;
     }
     else {
-        ans += PAGE_SIZE - reminder > sizeOfHeader ? (PAGE_SIZE-reminder) : (2*PAGE_SIZE-reminder);
-        Header * hAfter = (Header*)(ans + PAGE_SIZE);
-        hAfter->size = (uint)(h+1) + chunk_size - (uint)hAfter - sizeOfHeader;
+        uint remainder = (((uint) chunk) % PAGE_SIZE);
+        uint alignment= PAGE_SIZE - remainder;
+        if(alignment < sizeOfHeader) // i.e we don't have enough for the header
+            alignment = alignment+PAGE_SIZE;
+        void * ans =  chunk + alignment;
+        Header* h_ans = ((Header*)ans) - 1;
+        h_ans->size = PAGE_SIZE;
+        h->size = alignment - sizeOfHeader;
+        // arrange splitted chunks
+        void * r_chunk = ans + h_ans->size + sizeOfHeader;
+        Header * h_r_chunk =  ((Header*)r_chunk) - 1;
+        h_r_chunk->size =  remainder + sizeOfHeader;
 
-        h->size -= (sizeOfHeader + PAGE_SIZE + hAfter->size);
-        free(hAfter+1);
-        free(h+1);
-    }
+        if(alignment < sizeOfHeader){ // i.e we don't have enough for the header
+            h->size = h->size + PAGE_SIZE;
+            h_r_chunk->size = sizeOfHeader - remainder;
+        }
 
-    memset(ans, 0, PAGE_SIZE);
-    if(sign_pa(ans) == -1) {
-        printf(1, "sign pa failed\n");
-        h = (Header*)ans;
-        h->size = PAGE_SIZE-sizeOfHeader;
-        free(h+1);
-        return 0;
+        h_r_chunk->next = h->next;
+        h->next = h_ans;
+        h_ans->next = h_r_chunk;
+        //return un-needed chunks to stock
+        free(chunk);
+        free(r_chunk);
+
+        if(init_pmalloc(ans) == false){
+            free(ans);
+            return 0;
+        }
+        return ans;
     }
-    return ans;
 }
 
 int protect_page(void* ap){
 
-    //check that the pointer point to the start of the page
-    if((uint) ap % PAGE_SIZE != 0 )
-        return -1;
-
     if(get_pa_bit(ap) == 0){
         return -1;
     }
-
+    //check that the pointer point to the start of the page
+    if((uint) ap % PAGE_SIZE != 0 )
+        return -1;
     protect_p(ap);
     return 1;
 
@@ -215,20 +231,18 @@ int protect_page(void* ap){
 
 int pfree(void* ap){
 
-    if((uint)ap % PAGE_SIZE != 0) // not starting point of page
+    if((uint)ap % PAGE_SIZE != 0) { // not starting point of page
         return -1;
-
-    if(get_pa_bit(ap) == 0 /*|| get_w_bit(ap) == 1*/) // page is not pmalloced
+    }
+    if(get_pa_bit(ap) == 0 /*|| get_w_bit(ap) == 1*/) { // page is not pmalloced
         return -1;
-
-    ((volatile int * volatile)ap)[0];
+    }
+    reset_pa(ap);
+    //   printf(1,"had pa bit!!");
     unprotect_p(ap);
 
-   // reset_avl(ap);// reset avl bits;
-    Header *h = (Header*)ap;
-    h->size = PAGE_SIZE- sizeof(Header);
-    free(h+1);
-   // free(ap);
+
+    free(ap);
     return 1;
 
 

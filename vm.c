@@ -108,13 +108,13 @@ int sign_pa(void * va){
     return 0;
 }
 
-// system call to set all PTE_P bits to  0
-int reset_avl(void * va){
+// system call to set PTE_PA bit to  0
+int reset_pa(void * va){
     pte_t *pte;
     char *a = (char*)PGROUNDDOWN((uint)va);
     if((pte = walkpgdir(myproc()->pgdir, a, 0)) == 0) // walkpgdir  fail
         return -1;
-    *pte = (*pte) & 0xFFFFF8FF; // set PTE_P  bits to zero and sign as used
+    *pte = (*pte) & ~PTE_PA; // set PTE_PA  bits to zero
     lcr3(V2P(myproc()->pgdir));
     return 0;
 }
@@ -287,11 +287,12 @@ int insertSwaPpgs(void* va, void* mem){
 
 
     int findx = findUnuesd(&(curproc->SWAPpgs));
+    cprintf("found space in SWAP at %d\n", findx);
     if(findx == -1)
         panic("insertSwaPpgs :: Swap file is full :(");
 
-    curproc->SWAPpgs.pages[findx].va = (uint) va;
     curproc->SWAPpgs.pages[findx].inUesd = 1;
+    curproc->SWAPpgs.pages[findx].va = (uint) va;
     curproc->SWAPpgs.pages[findx].mem = 0;
     curproc->SWAPpgs.size++;
     curproc->pgout++;
@@ -311,6 +312,7 @@ int insertRAMPgs(void* va, void* mem){
     struct proc* curproc = myproc();
 
     int findx = findUnuesd(&(curproc->RAMpgs));
+    cprintf("found space in RAMP at %d, proc pid%d\n", findx, curproc->pid);
     if(findx == -1)
         panic("insertRAMPgs:: no place RAM DB.. :(");
 

@@ -25,7 +25,7 @@ int sleep(int);
 int uptime(void);
 int yield(void);
 int sign_pa(void * va);
-int reset_avl(void * va);
+int reset_pa(void * va);
 int get_pa_bit(void * va);
 int get_w_bit(void * va);
 int protect_p(void * va);

@@ -142,11 +142,11 @@ int sys_protect_p(void){
     return unprotect_p(va);
 
 }
-int sys_reset_avl(void){
+int sys_reset_pa(void){
 
     void * va;
     if(argint(0,(int *)(&va))<0)
         return -1;
-    return reset_avl(va);
+    return reset_pa(va);
 }
 

@@ -105,7 +105,7 @@ extern int sys_write(void);
 extern int sys_uptime(void);
 extern int sys_yield(void);
 extern int sys_sign_pa(void);
-extern int sys_reset_avl(void);
+extern int sys_reset_pa(void);
 extern int sys_get_pa_bit(void);
 extern int sys_get_w_bit(void);
 extern int sys_unprotect_p(void);
@@ -137,7 +137,7 @@ static int (*syscalls[])(void) = {
 [SYS_close]   sys_close,
 [SYS_yield]   sys_yield,
 [SYS_sign_pa] sys_sign_pa,
-[SYS_reset_avl] sys_reset_avl,
+[SYS_reset_pa] sys_reset_pa,
 [SYS_get_pa_bit] sys_get_pa_bit,
 [SYS_get_w_bit] sys_get_w_bit,
 [SYS_protect_p] sys_protect_p,
