@@ -35,7 +35,7 @@ idtinit(void)
 void
 pagefault(uint raddr)
 {
-    cprintf("PAGEFAULDLE\n");
+    //cprintf("PAGEFAULDLE\n");
     struct proc * p = myproc();
     int indx;
     pte_t * pte = walkpgdir(p->pgdir, (const void*)raddr, 0);
@@ -66,7 +66,7 @@ pagefault(uint raddr)
         else{
             if(p->RAMpgs.size == MAX_PSYC_PAGES)
             {
-                cprintf("&^(^#*^#(^*\naddress %d, %x\n", raddr / PGSIZE, *pte & 0xfff);
+                //cprintf("&^(^#*^#(^*\naddress %d, %x\n", raddr / PGSIZE, *pte & 0xfff);
                 indx = choosePageToSwapOut(p);
                 swapOut(indx, p,raddr);
             }
@@ -136,7 +136,7 @@ trap(struct trapframe *tf)
     break;
   #ifndef NONE
   case T_PGFLT:
-      cprintf("page fault\n");
+      //cprintf("page fault\n");
       //void * add = (void*)rcr2();
       //struct proc *p = myproc();
       if(myproc() && (tf->cs&3) == DPL_USER) {
