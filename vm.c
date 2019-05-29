@@ -63,6 +63,7 @@ int protect_p(void * va){
 
     *pte =(*pte) & 0xFFFFFFFD;
     lcr3(V2P(myproc()->pgdir));
+    myproc()->pnum++;
     return 0;
 
 }
@@ -74,6 +75,7 @@ int unprotect_p(void * va){
         return -1;
     *pte =(*pte) | PTE_W ;
     lcr3(V2P(myproc()->pgdir));
+    myproc()->pnum--;
     return 0;
 }
 

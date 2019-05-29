@@ -224,7 +224,9 @@ int protect_page(void* ap){
     //check that the pointer point to the start of the page
     if((uint) ap % PAGE_SIZE != 0 )
         return -1;
+
     protect_p(ap);
+
     return 1;
 
 }
@@ -239,7 +241,8 @@ int pfree(void* ap){
     }
     reset_pa(ap);
     //   printf(1,"had pa bit!!");
-    unprotect_p(ap);
+    if(get_w_bit(ap) == 0)
+         unprotect_p(ap);
 
 
     free(ap);
