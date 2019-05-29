@@ -5,10 +5,11 @@
 
 #define PAGE_SIZE 4096
 #define H_SIZE 8
+#define NUM_PAGES 13
 
 int testnum = 20;
 int success=0, fail=0,ans=0, fibNum=10,mid=-1;
-
+void * pages[NUM_PAGES] ; int pnum=0;
 int loopnum=1;
 
 int num_threads=1;
@@ -55,16 +56,20 @@ void test_malloc(){
 }
 
 void test_pmalloc_sanity(){
-    void * page = pmalloc();
-    if(page == 0){
+    pages[pnum] = pmalloc();
+    if(pages[pnum] == 0){
         printf(1,"pmalloc failed");
         return;
     }
     //test page aligned
-    if((uint)page % 4096 == 0 )
+    if((uint)pages[pnum] % 4096 == 0 )
         ans++;
 
 
+}
+void  test_pmalloc_pfree(){
+    if(pfree(pages[pnum]) == 1);
+        ans++;
 }
 
 void test_protected(){
@@ -85,14 +90,14 @@ void test_protected(){
         ans++;
 
 // try to memset
-  //    memset(page,0,500);
+    //    memset(page,0,500);
 
 
 }
 void test_z(){
     uint sz = (uint) sbrk(0);
     printf(1, "proc size %d\n", (sz)/PAGE_SIZE+ (sz%PAGE_SIZE !=0));
-  sbrk(18*4096-sz);
+    sbrk(18*4096-sz);
     sz = (uint) sbrk(0);
     printf(1, "proc size %d\n", (sz)/PAGE_SIZE+ (sz%PAGE_SIZE !=0));
 }
@@ -172,18 +177,26 @@ void make_test(void (*f)(void) , int expected ,char * test_name){
 int main(void) {
 
     // __________________MALLOC___________________
-    // make_test(test_malloc, 2, "test_malloc");
+    make_test(test_malloc, 2, "test_malloc");
 
-    printf(1, "fib address %x\n", fib);
+
     // _________________PMALLOC_PROTECT_PFREE_____________
   //  make_test(test_z, 0, "test_z");
-    for (int i = 0; i < 6; i++){
-       make_test(test_pmalloc_sanity, 1, "test_pmalloc_sanity");
-     //   make_test(test_malloc, 2, "test_malloc");
-}
-  //  make_test(test_protected, 1, "test_protected");
-   // make_test(test_pfree_sanity, 2, "test_pfree_sanity");
-   // make_test(test_flag_clearing, 3, "test_flag_clearing");
+    for (int i = 0; i < NUM_PAGES; i++){
+        pnum = i;
+        make_test(test_pmalloc_sanity, 1, "test_pmalloc_sanity");
+
+
+    }
+    for (int i = 0; i < NUM_PAGES; i++){
+        pnum = i;
+        make_test(test_pmalloc_pfree, 1, "test_pmalloc_pfree");
+    }
+
+
+    make_test(test_protected, 1, "test_protected");
+    make_test(test_pfree_sanity, 2, "test_pfree_sanity");
+    make_test(test_flag_clearing, 3, "test_flag_clearing");
 
 
 

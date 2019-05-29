@@ -287,7 +287,7 @@ int insertSwaPpgs(void* va, void* mem){
 
 
     int findx = findUnuesd(&(curproc->SWAPpgs));
-    cprintf("found space in SWAP at %d\n", findx);
+
     if(findx == -1)
         panic("insertSwaPpgs :: Swap file is full :(");
 
@@ -312,7 +312,7 @@ int insertRAMPgs(void* va, void* mem){
     struct proc* curproc = myproc();
 
     int findx = findUnuesd(&(curproc->RAMpgs));
-    cprintf("found space in RAMP at %d, proc pid%d\n", findx, curproc->pid);
+
     if(findx == -1)
         panic("insertRAMPgs:: no place RAM DB.. :(");
 
