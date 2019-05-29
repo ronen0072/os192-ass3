@@ -209,3 +209,23 @@ int swapIn(uint va, struct proc* p){
     lcr3(V2P(myproc()->pgdir));
     return 1;
 }
+void cleanPages(struct proc* p) {
+    if (p->pid > DEFAULT_PROCESSES) {
+        p->pgflt = 0;
+        p->pgout = 0;
+        p->protected_pages = 0;
+        struct pageArray *RAMpgs = &(p->RAMpgs);
+        struct pageArray *SWAPpgs = &(p->SWAPpgs);
+        for (int i = 0; i < MAX_PSYC_PAGES; i++) {
+            RAMpgs->pages[i].va = 0;
+            RAMpgs->pages[i].mem = 0;
+            RAMpgs->pages[i].ctime = 0;
+            RAMpgs->pages[i].inUesd = 0;
+
+            SWAPpgs->pages[i].va = 0;
+            SWAPpgs->pages[i].mem = 0;
+            SWAPpgs->pages[i].ctime = 0;
+            SWAPpgs->pages[i].inUesd = 0;
+        }
+    }
+}

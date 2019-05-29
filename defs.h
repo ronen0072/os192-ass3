@@ -215,7 +215,7 @@ int				findVA(struct pageArray*,uint);
 int				swapIn(uint, struct proc*);
 int				swapOut(int, struct proc*,uint);
 int				choosePageToSwapOut(struct proc* p);
-
+void            cleanPages(struct proc* p);
 
 // number of elements in fixed-size array
 #define NELEM(x) (sizeof(x)/sizeof((x)[0]))
