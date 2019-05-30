@@ -317,14 +317,14 @@ wait(void)
                 cleanPages(p);
                 release(&ptable.lock);
                 //task 3
-                #ifndef NONE
+#ifndef NONE
                 if(curproc->pid > DEFAULT_PROCESSES) {
                     // deleting back store...
                     removeSwapFile(curproc);
                     //reset data structers..
                     memset(&(curproc->SWAPpgs), 0, 2 * sizeof(struct pageArray));
                 }
-                #endif
+#endif
                 return pid;
             }
         }
@@ -543,7 +543,7 @@ procdump(void)
 
     struct proc *p;
     char *state;
-    uint curr_free_pages = total_available_pages;
+    volatile uint currFreePages = total_available_pages;
 
     for(p = ptable.proc; p < &ptable.proc[NPROC]; p++){
         if(p->state == UNUSED)
@@ -553,7 +553,7 @@ procdump(void)
         else
             state = "???";
 #ifndef NONE
-        curr_free_pages -= p->RAMpgs.size;
+        currFreePages -= p->RAMpgs.size;
 
         //<field 1><field 2><allocated memory pages><paged out><protected
         //pages><page faults><total number of paged out><field set 3>
@@ -564,7 +564,7 @@ procdump(void)
 #endif
 
 #ifdef NONE
-    uint pc[10];
+        uint pc[10];
     int i;
     if(p->state == SLEEPING){
       getcallerpcs((uint*)p->context->ebp+2, pc);
@@ -577,7 +577,7 @@ procdump(void)
     }
 
 #ifndef NONE
-    cprintf("%d / %d free pages in the system\n", curr_free_pages, total_available_pages);
+    cprintf("%d / %d free pages in the system\n", currFreePages, total_available_pages);
 #endif
 }
 
