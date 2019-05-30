@@ -213,7 +213,7 @@ void cleanPages(struct proc* p) {
     if (p->pid > DEFAULT_PROCESSES) {
         p->pgflt = 0;
         p->pgout = 0;
-        p->protected_pages = 0;
+        p->pnum = 0;
         struct pageArray *RAMpgs = &(p->RAMpgs);
         struct pageArray *SWAPpgs = &(p->SWAPpgs);
         for (int i = 0; i < MAX_PSYC_PAGES; i++) {

@@ -72,8 +72,14 @@ QEMU = $(shell if which qemu > /dev/null; \
 	echo "***" 1>&2; exit 1)
 endif
 
+# Task 3
 ifndef SELECTION
 	SELECTION := SCFIFO
+endif
+
+# Task 4
+ifndef VERBOSE_PRINT
+	VERBOSE_PRINT := FALSE
 endif
 
 CC = $(TOOLPREFIX)gcc
@@ -86,6 +92,8 @@ CFLAGS = -fno-pic -static -fno-builtin -fno-strict-aliasing -O2 -Wall -MD -ggdb 
 CFLAGS += $(shell $(CC) -fno-stack-protector -E -x c /dev/null >/dev/null 2>&1 && echo -fno-stack-protector)
 # Task 3
 CFLAGS += -D $(SELECTION)
+# Task 4
+CFLAGS += -D $(VERBOSE_PRINT)
 ASFLAGS = -m32 -gdwarf-2 -Wa,-divide
 # FreeBSD ld wants ``elf_i386_fbsd''
 LDFLAGS += -m $(shell $(LD) -V | grep elf_i386 2>/dev/null | head -n 1)

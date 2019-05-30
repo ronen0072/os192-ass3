@@ -13,6 +13,8 @@ void freerange(void *vstart, void *vend);
 extern char end[]; // first address after kernel loaded from ELF file
                    // defined by the kernel linker script in kernel.ld
 
+uint total_available_pages;
+
 struct run {
   struct run *next;
 };
@@ -22,6 +24,18 @@ struct {
   int use_lock;
   struct run *freelist;
 } kmem;
+
+void get_total_available_pages(void){
+    struct run* head = kmem.freelist;
+
+    while(1)
+    {
+        if(!head)
+            break;
+        head = head->next;
+        total_available_pages++;
+    }
+}
 
 // Initialization happens in two phases.
 // 1. main() calls kinit1() while still using entrypgdir to place just

@@ -69,7 +69,7 @@ void test_pmalloc_sanity(){
 }
 void  test_pmalloc_pfree(){
     if(pfree(pages[pnum]) == 1);
-        ans++;
+    ans++;
 }
 
 void test_protected(){
@@ -181,7 +181,7 @@ int main(void) {
 
 
     // _________________PMALLOC_PROTECT_PFREE_____________
-  //  make_test(test_z, 0, "test_z");
+    //  make_test(test_z, 0, "test_z");
     for (int i = 0; i < NUM_PAGES; i++){
         pnum = i;
         make_test(test_pmalloc_sanity, 1, "test_pmalloc_sanity");

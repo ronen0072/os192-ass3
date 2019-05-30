@@ -64,11 +64,12 @@ struct proc {
   struct file *ofile[NOFILE];  // Open files
   struct inode *cwd;           // Current directory
   char name[16];               // Process name (debugging)
-  volatile int pnum;                  //num of protected pages pmalloced for proc
+
 
   //memory satistic
-  uint pgflt;
-  uint pgout;
+  volatile int pnum;            //num of protected pages pmalloced for proc
+  uint pgflt;                   //num of Page Fault for proc
+  uint pgout;                   //num of Page out for proc
 
   //Swap file. must initiate with create swap file
   struct file *swapFile;       // page file

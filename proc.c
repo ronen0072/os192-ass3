@@ -7,6 +7,8 @@
 #include "proc.h"
 #include "spinlock.h"
 
+extern uint total_available_pages;
+
 struct {
     struct spinlock lock;
     struct proc proc[NPROC];
@@ -123,6 +125,7 @@ userinit(void)
     struct proc *p;
     extern char _binary_initcode_start[], _binary_initcode_size[];
 
+    get_total_available_pages();
     p = allocproc();
 
     initproc = p;
@@ -257,21 +260,11 @@ exit(void)
     iput(curproc->cwd);
     end_op();
     curproc->cwd = 0;
-//task 3
-#ifndef NONE
-    if(curproc->pid > DEFAULT_PROCESSES) {
-        // deleting back store...
-        removeSwapFile(curproc);
-        //reset data structers..
-        memset(&(curproc->SWAPpgs), 0, 2 * sizeof(struct pageArray));
-    }
-#endif
-
 
     //task 4
 #ifdef TRUE
-    cprintf("%d zombie %d %d %d %d %d %s\n" ,
-        curproc->pid, arr_length(curproc->pages_in_memory), arr_length(curproc->pages_in_swapFile), curproc->protected_pages ,curproc->num_page_fault, curproc->num_page_out , curproc->name);
+    cprintf("%d %s %d %d %d %d %d %s\n" ,
+                p->pid, state, p->RAMpgs.size,  p->SWAPpgs.size, p->pnum ,p->pgflt, p->pgout , p->name);
 #endif
     acquire(&ptable.lock);
 
@@ -323,6 +316,15 @@ wait(void)
                 p->state = UNUSED;
                 cleanPages(p);
                 release(&ptable.lock);
+                //task 3
+                #ifndef NONE
+                if(curproc->pid > DEFAULT_PROCESSES) {
+                    // deleting back store...
+                    removeSwapFile(curproc);
+                    //reset data structers..
+                    memset(&(curproc->SWAPpgs), 0, 2 * sizeof(struct pageArray));
+                }
+                #endif
                 return pid;
             }
         }
@@ -541,7 +543,7 @@ procdump(void)
 
     struct proc *p;
     char *state;
-
+    uint curr_free_pages = total_available_pages;
 
     for(p = ptable.proc; p < &ptable.proc[NPROC]; p++){
         if(p->state == UNUSED)
@@ -550,15 +552,18 @@ procdump(void)
             state = states[p->state];
         else
             state = "???";
-        cprintf("%d %s ", p->pid, state);
-
 #ifndef NONE
-        cprintf("%d %d %d %d",p->RAMpgs.size, p->SWAPpgs.size, p->pgflt,p->pgout);
+        curr_free_pages -= p->RAMpgs.size;
 
+        //<field 1><field 2><allocated memory pages><paged out><protected
+        //pages><page faults><total number of paged out><field set 3>
+        cprintf("%d %s %d %d %d %d %d %s\n" ,
+                p->pid, state, p->RAMpgs.size,  p->SWAPpgs.size, p->pnum ,p->pgflt, p->pgout , p->name);
+#else
+        cprintf("%d %s %s", p->pid, state, p->name);
 #endif
 
 #ifdef NONE
-        cprintf("%s", p->name);
     uint pc[10];
     int i;
     if(p->state == SLEEPING){
@@ -570,4 +575,10 @@ procdump(void)
 
         cprintf("\n");
     }
+
+#ifndef NONE
+    cprintf("%d / %d free pages in the system\n", curr_free_pages, total_available_pages);
+#endif
 }
+
+
