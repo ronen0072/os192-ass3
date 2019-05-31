@@ -35,7 +35,7 @@ idtinit(void)
 void
 pagefault(uint raddr)
 {
-
+    //cprintf("PAGEFAULDLE\n");
     struct proc * p = myproc();
     int indx;
     pte_t * pte = walkpgdir(p->pgdir, (const void*)raddr, 0);
@@ -66,7 +66,7 @@ pagefault(uint raddr)
         else{
             if(p->RAMpgs.size == MAX_PSYC_PAGES)
             {
-
+                //cprintf("&^(^#*^#(^*\naddress %d, %x\n", raddr / PGSIZE, *pte & 0xfff);
                 indx = choosePageToSwapOut(p);
                 swapOut(indx, p,raddr);
             }

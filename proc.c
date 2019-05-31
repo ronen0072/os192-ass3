@@ -543,7 +543,9 @@ procdump(void)
 
     struct proc *p;
     char *state;
-    volatile uint currFreePages = total_available_pages;
+#ifndef NONE
+    uint currFreePages = total_available_pages;
+#endif
 
     for(p = ptable.proc; p < &ptable.proc[NPROC]; p++){
         if(p->state == UNUSED)

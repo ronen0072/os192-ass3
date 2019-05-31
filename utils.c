@@ -55,44 +55,37 @@ int findVA(struct pageArray* DB, uint va){
 }
 
 
-int FIFOchoose(struct proc* p){
-    struct pageArray* RAMpgs = &(p->RAMpgs);
-    struct pageArray copy    = *RAMpgs;
-    int i = 0;
-
-    sort(&copy, MAX_PSYC_PAGES);
-
-    while(1){
-        if(copy.pages[i].inUesd) {
-            //free one
-            walkpgdir(p->pgdir, (const void *) copy.pages[i].va, 0);
-
-            //return answer
-            return findVA(RAMpgs, copy.pages[i].va);
-
+int LIFOchoose(struct proc* p) {
+    struct pageArray *RAMpgs = &(p->RAMpgs);
+    //struct pageArray copy    = *RAMpgs;
+    int index = 0;
+    uint maxCtime = RAMpgs->pages[0].ctime;
+    for (int i = 1; i < MAX_PSYC_PAGES; i++) {
+        if (RAMpgs->pages[i].ctime > maxCtime) {
+            maxCtime = RAMpgs->pages[i].ctime;
+            index = i;
         }
-        i = (i + 1) % MAX_PSYC_PAGES;
-
     }
+    return index;
 }
 
 
 int SCFIFOchoose(struct proc* p){
     struct pageArray* RAMpgs = &(p->RAMpgs);
-    struct pageArray copy    = *RAMpgs;
+    //struct pageArray copy    = *RAMpgs;
     pte_t * pte;
     int i = 0;
 
-    sort(&copy, MAX_PSYC_PAGES);
+    sort(RAMpgs, MAX_PSYC_PAGES);
 
     while(1){
-        if(copy.pages[i].inUesd) {
+        if(RAMpgs->pages[i].inUesd) {
             //free one
-            pte = walkpgdir(p->pgdir, (const void *) copy.pages[i].va, 0);
+            pte = walkpgdir(p->pgdir, (const void *) RAMpgs->pages[i].va, 0);
 
             if (!(*pte & PTE_A))
                 //return answer
-                return findVA(RAMpgs, copy.pages[i].va);
+                return findVA(RAMpgs, RAMpgs->pages[i].va);
             clearbit(pte,PTE_A);
         }
         i = (i + 1) % MAX_PSYC_PAGES;
@@ -102,8 +95,9 @@ int SCFIFOchoose(struct proc* p){
 
 int choosePageToSwapOut(struct proc* p){
     int indx = 0;
-#ifdef FIFO
-    indx = FIFOchoose(p);
+#ifdef LIFO
+    indx = LIFOchoose(p);
+     //cprintf("LIFOchoose:: indx:%d\n",indx);
 #endif
 #ifdef SCFIFO
     indx = SCFIFOchoose(p);
