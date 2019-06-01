@@ -499,15 +499,16 @@ copyuvm(pde_t *pgdir, uint sz)
     for(int i = 0; i < sz; i += PGSIZE){
         if((pte = walkpgdir(pgdir, (void *) i, 0)) == 0)
             panic("copyuvm: pte should exist");
-        if (myproc()->pid > DEFAULT_PROCESSES){
-            if (*pte & PTE_PG) {
-                *pte |= PTE_PG;
-                *pte &= ~PTE_P;
-                *pte &= PTE_FLAGS(*pte);
-                lcr3(V2P(myproc()->pgdir));
-                continue;
-            }
+#ifndef NONE
+        if (myproc()->pid > DEFAULT_PROCESSES && (*pte & PTE_PG)) {
+            *pte |= PTE_PG;
+            *pte &= ~PTE_P;
+            *pte &= ~PTE_A;
+            *pte &= PTE_FLAGS(*pte);
+            lcr3(V2P(myproc()->pgdir));
+            continue;
         }
+#endif
         if(!(*pte & PTE_P))
             panic("copyuvm: page not present");
 
@@ -567,7 +568,20 @@ copyout(pde_t *pgdir, uint va, void *p, uint len)
     }
     return 0;
 }
+int isExistInSecondaryStorage (int pageVA){
+    return (*(walkpgdir(myproc()->pgdir,(void *)pageVA,0)) & PTE_PG);
+}
+int is_PTE_W(void * pgdir){
+    pte_t *pte;
+    char *a;
+    a = (char *) PGROUNDDOWN((uint) pgdir);
+    if ((pte = walkpgdir(myproc()->pgdir, a, 0)) == 0)
+        return -1;
 
+    if ((*pte) & PTE_W) {
+        return true;
+    } else return false;
+}
 //PAGEBREAK!
 // Blank page.
 //PAGEBREAK!

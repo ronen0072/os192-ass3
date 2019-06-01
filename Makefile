@@ -191,6 +191,7 @@ UPROGS=\
 	_zombie\
 	_myMemTest\
 	_sanity\
+	_task2_28\
 
 fs.img: mkfs README $(UPROGS)
 	./mkfs fs.img README $(UPROGS)

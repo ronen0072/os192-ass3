@@ -207,6 +207,7 @@ fork(void)
         copySwapFile(curproc, np);
         np->pgflt = 0;
         np->pgout = 0;
+        np->pnum = 0;
     }
 #endif
 
@@ -264,8 +265,19 @@ exit(void)
     //task 4
 #ifdef TRUE
     cprintf("%d %s %d %d %d %d %d %s\n" ,
-                p->pid, state, p->RAMpgs.size,  p->SWAPpgs.size, p->pnum ,p->pgflt, p->pgout , p->name);
+                p->pid, state, p->RAMpgs.size + p->SWAPpgs.size,  p->SWAPpgs.size, p->pnum ,p->pgflt, p->pgout , p->name);
 #endif
+
+    //task 3
+#ifndef NONE
+    if(curproc->pid > DEFAULT_PROCESSES) {
+        // deleting back store...
+        removeSwapFile(curproc);
+        //reset data structers..
+        memset(&(curproc->SWAPpgs), 0, 2 * sizeof(struct pageArray));
+    }
+#endif
+
     acquire(&ptable.lock);
 
     // Parent might be sleeping in wait().
@@ -316,16 +328,7 @@ wait(void)
                 p->state = UNUSED;
                 cleanPages(p);
                 release(&ptable.lock);
-                //task 3
-#ifndef NONE
-                if(curproc->pid > DEFAULT_PROCESSES) {
-                    // deleting back store...
-                    removeSwapFile(curproc);
-                    //reset data structers..
-                    memset(&(curproc->SWAPpgs), 0, 2 * sizeof(struct pageArray));
-                }
-#endif
-                return pid;
+          return pid;
             }
         }
 
@@ -555,12 +558,12 @@ procdump(void)
         else
             state = "???";
 #ifndef NONE
-        currFreePages -= p->RAMpgs.size;
+        currFreePages -= (p->RAMpgs.size + p->SWAPpgs.size);
 
         //<field 1><field 2><allocated memory pages><paged out><protected
         //pages><page faults><total number of paged out><field set 3>
         cprintf("%d %s %d %d %d %d %d %s\n" ,
-                p->pid, state, p->RAMpgs.size,  p->SWAPpgs.size, p->pnum ,p->pgflt, p->pgout , p->name);
+                p->pid, state, p->RAMpgs.size + p->SWAPpgs.size,  p->SWAPpgs.size, p->pnum ,p->pgflt, p->pgout , p->name);
 #else
         cprintf("%d %s %s", p->pid, state, p->name);
 #endif

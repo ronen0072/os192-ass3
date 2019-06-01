@@ -4,60 +4,54 @@
 
 // TESTS FILE
 #define PGSIZE		4096
+int success=0, fail=0,ans=0;
 
-int
-randomGenrator(int seed, int limit)
-{
+int randomGenrator(int seed, int limit){
 	return (seed ^ (seed * 7)) % limit;
 }
 
 
-void
-test2(void)
-{
+void test2(void){
 	char * bla = sbrk(20 * PGSIZE);
-	int i;
 	
-	for(i = 0; i < 10; ++i){
+	for(int i = 0; i < 10; ++i){
 		bla[i] = i;
 		bla[20 - i] = i;
 	}
 	
 	//reading
-	for(i = 0; i < 10; ++i){
-		if(bla[i] != i || bla[20-i] != i)
+	for(int i = 0; i < 10; ++i){
+		if(bla[i] != i || bla[20-i] != i){
 			printf(1, "failed\n");
+			ans = -1;
+		}
 	}
 }
 
-void
-test1(int flag)
-{
-	int i;
+void test1(int flag){
 	// request 20 pages.
 	char * bla = sbrk(20*PGSIZE);
 	
 	// write i to page i
-	for(i = 0; i < 20; i++)
+	for(int i = 0; i < 20; i++)
 		bla[i*PGSIZE] = i;
 	
 	//read
-	for(i = 0; i < 20 ; i++){
+	for(int i = 0; i < 20 ; i++){
 		if(bla[i*PGSIZE] != i){
 			printf(1, "Simple Test failed");
+            ans = -1;
 		}
 	}
 	if (flag) exit();
 }
 
-void
-mySimpleTets(void)
-{
+void mySimpleTets(void){
 	int pid;
-	printf(1, "mySimpleTest ------> ");
 	
 	if((pid = fork()) == -1) {
 		printf(1, "fork failed exiting...\n");
+        ans = -1;
 		goto bad;
 	}
 	
@@ -73,10 +67,7 @@ bad:
 	exit();
 }
 
-void
-doubleProcess()
-{
-	printf(1, "doubleProcess------> ");
+void doubleProcess(){
 	int pid = fork();
 	if(!pid){
 		test2();
@@ -93,32 +84,26 @@ doubleProcess()
 }
 
 //checking segemntion fault
-void
-segTest()
-{
-	printf(1, "segTest-------> ");
+void segTest(){
 	int pid = fork();
 	int* seg = 0;
 	
 	if(!pid){
 		*seg = 1;
 		printf(1,"failed\n");
+        ans = -1;
 	}
 	wait();
 	printf(1,"done\n");
 }
 
-void
-test3(void)
-{
+void test3(void){
 	sbrk(10*PGSIZE);
 	exit();
 }
 
-void
-forktests(void)
-{
-	printf(1, "forktest------> ");
+void forktests(void){
+    ans = -1;
 	for (int i = 0; i < 5 ; i++){
 		int pid = fork();
 		if(pid)
@@ -128,13 +113,11 @@ forktests(void)
 	for(int i = 0 ; i < 5; i++){
 		wait();
 	}
+    ans = 1;
 	printf(1,"done\n");
 }
 
-void
-multiplewritesOneProcess(void)
-{
-	printf(1,"multiplewritesOneProcess\n");
+void multiplewritesOneProcess(void){
 	int pid = fork();
 	if(pid)
 		goto waitf;
@@ -158,10 +141,8 @@ waitf:
 	wait();
 }
 
-void
-overLoadPage(void)
-{
-	printf(1,"page over load ---->\n");
+void overLoadPage(void){
+
 	int pid = fork();
 	if(!pid)
 		sbrk(33*PGSIZE);
@@ -169,30 +150,24 @@ overLoadPage(void)
 	printf(1,"done\n");
 }
 
-void
-memtest(char* brk)
-{
-	int i,j;
-	
-	for(i = 0; i < 10; i++){
-		for(j = 0; j < 20; j++){
+void memtest(char* brk){
+
+	for(int i = 0; i < 10; i++){
+		for(int j = 0; j < 20; j++){
 			if(brk[PGSIZE*i + j] == j )
 				continue;
 			printf(1, "mem test failed\n");
-	}
+            ans = -1;
+	    }
 	exit();
-}
+    }
 }
 
-void
-copyMemTest(void)
-{
-	printf(1, "Copy Mem Test----> ");
+void copyMemTest(void){
 	char* brk = sbrk(10*PGSIZE);
-	int i, j;
 	
-	for(i = 0; i < 10; i++){
-		for(j = 0; j < 20; j++){
+	for(int i = 0; i < 10; i++){
+		for(int j = 0; j < 20; j++){
 			brk[PGSIZE*i + j] = j;
 		}
 	}
@@ -204,19 +179,31 @@ copyMemTest(void)
 	printf(1, "done\n");
 }
 
-int 
-main()
-{
+void make_test(void (*f)(void) , int expected ,char * test_name){
+
+    printf(1,"__________________________starting test %s__________________________\n",test_name);
+    ans = 0;
+    f();
+    if(ans == expected)
+        success++;
+    else {
+        fail++;
+        printf(1,"%s failed!!\n",test_name);
+    }
+
+}
+int main(){
 	//first-> allocate 20 pages, write in lineric, meaning write each
 	// page i the number i, and read it.
 	//Sanity Test...
-	//mySimpleTets();
-	doubleProcess();
-	segTest();
-	forktests();
-	multiplewritesOneProcess();
-	overLoadPage();
-	copyMemTest();
+	make_test(mySimpleTets, 0,"mySimpleTets");
+    make_test(doubleProcess, 0,"doubleProcess");
+    make_test(segTest, 0,"segTest");
+    make_test(doubleProcess, 0,"doubleProcess");
+    make_test(forktests, 1,"forktests");
+    make_test(multiplewritesOneProcess, 0,"multiplewritesOneProcess");
+    make_test(overLoadPage, 0,"overLoadPage");
+    make_test(copyMemTest, 0,"copyMemTest");
 	
 	exit();
 }
