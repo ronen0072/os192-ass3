@@ -202,10 +202,12 @@ allocproc(void)
             np->kstack = 0;
             np->state = UNUSED;
 #ifndef NONE
-            // deleting back store...
-            removeSwapFile(curproc);
-            //reset data structers..
-            memset(&(curproc->SWAPpgs), 0, 2 * sizeof(struct pageArray));
+            if(curproc->pid > DEFAULT_PROCESSES) {
+                // deleting back store...
+                removeSwapFile(curproc);
+                //reset data structers..
+                memset(&(curproc->SWAPpgs), 0, 2 * sizeof(struct pageArray));
+            }
 #endif
             return -1;
         }
@@ -218,12 +220,12 @@ allocproc(void)
             np->pgout = 0;
             np->pnum = curproc->pnum;
 
-            /*for (int i=0; i<MAX_PSYC_PAGES; i++){
+            for (int i=0; i<MAX_PSYC_PAGES; i++){
                 np->SWAPpgs.pages[i] = curproc->SWAPpgs.pages[i];
                 np->SWAPpgs.pages[i].va = (uint) np->pgdir;
                 np->RAMpgs.pages[i] = curproc->RAMpgs.pages[i];
                 np->RAMpgs.pages[i].va = (uint) np->pgdir;
-            }*/
+            }
         }
 #endif
 

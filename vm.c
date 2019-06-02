@@ -297,7 +297,7 @@ int insertSwaPpgs(void* va, void* mem){
     curproc->SWAPpgs.pages[findx].va = (uint) va;
     curproc->SWAPpgs.pages[findx].mem = 0;
     curproc->SWAPpgs.size++;
-    curproc->pgout++;
+    //curproc->pgout++;
     if(writeToSwapFile(curproc, mem, findx * PGSIZE, PGSIZE) == -1)
         panic("insertSwaPpgs :: Failed to write to swapfile.. :(");
 
@@ -348,6 +348,8 @@ void addPages(void* va,void* mem){
         lcr3(V2P(myproc()->pgdir));
 
         kfree(mem);
+        int indx = choosePageToSwapOut(curproc);
+        swapOut(indx, curproc, (uint)va);
     }
     else
         insertRAMPgs(va, mem);
