@@ -125,23 +125,28 @@ trap(struct trapframe *tf)
     break;
   #ifndef NONE
   case T_PGFLT:
-
-      //void * add = (void*)rcr2();
-      //struct proc *p = myproc();
+      ;
+      int rcr2VA  = rcr2();
       if(myproc() && (tf->cs&3) == DPL_USER) {
-         // handlePageFault(p, add);
-          pagefault(PGROUNDDOWN(rcr2()));
-          break;
+          if(isExistInSecondaryStorage(rcr2VA)) {
+              myproc()->pgflt++;
+              pagefault(PGROUNDDOWN(rcr2VA));
+              break;
+          }
+          else if (!(is_PTE_W((void *) rcr2VA))){
+              tf->trapno = 13;
+              goto throwTrap;
+          }
       } else {
           panic("Page Fault in kernel!!!!!\n");
       }
-//      myproc()->pgflt++;
-//
-//      if (pagefault(PGROUNDDOWN(rcr2())))
-//          return;
+
   #endif
   //PAGEBREAK: 13
   default:
+#ifndef NONE
+  throwTrap:
+#endif
     if(myproc() == 0 || (tf->cs&3) == 0){
       // In kernel, it must be our mistake.
 

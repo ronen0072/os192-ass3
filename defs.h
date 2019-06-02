@@ -208,6 +208,9 @@ int             get_pa_bit(void* va);
 int             get_w_bit(void* va);
 int             unprotect_p(void* va);
 int             protect_p(void* vamy);
+int             isExistInSecondaryStorage (int pageVA);
+int             is_PTE_W(void * pgdir);
+
 //utils.c
 void			clearbit(uint*, uint);
 void			addbit(uint*, uint);
