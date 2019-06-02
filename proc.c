@@ -114,8 +114,12 @@ allocproc(void)
     memset(p->context, 0, sizeof *p->context);
     p->context->eip = (uint)forkret;
 
-    return p;
-}
+#ifndef NONE
+    if(p->pid > DEFAULT_PROCESSES)
+        createSwapFile(p);
+#endif
+        return p;
+    }
 
 //PAGEBREAK: 32
 // Set up first user process.
@@ -192,22 +196,37 @@ fork(void)
         return -1;
     }
 
-    // Copy process state from proc.
-    if((np->pgdir = copyuvm(curproc->pgdir, curproc->sz)) == 0){
-        kfree(np->kstack);
-        np->kstack = 0;
-        np->state = UNUSED;
-        return -1;
-    }
+        // Copy process state from proc.
+        if((np->pgdir = copyuvm(curproc->pgdir, curproc->sz)) == 0){
+            kfree(np->kstack);
+            np->kstack = 0;
+            np->state = UNUSED;
+#ifndef NONE
+            if(curproc->pid > DEFAULT_PROCESSES) {
+                // deleting back store...
+                removeSwapFile(curproc);
+                //reset data structers..
+                memset(&(curproc->SWAPpgs), 0, 2 * sizeof(struct pageArray));
+            }
+#endif
+            return -1;
+        }
 
     memmove(&(np->SWAPpgs), &(curproc->SWAPpgs), 2* sizeof(struct pageArray));
 #ifndef NONE
-    if(curproc != initproc){
-        createSwapFile(np);
-        copySwapFile(curproc, np);
-        np->pgflt = 0;
-        np->pgout = 0;
-    }
+        if(curproc != initproc){
+            copySwapFile(curproc, np);
+            np->pgflt = 0;
+            np->pgout = 0;
+            np->pnum = curproc->pnum;
+
+            for (int i=0; i<MAX_PSYC_PAGES; i++){
+                np->SWAPpgs.pages[i] = curproc->SWAPpgs.pages[i];
+                np->SWAPpgs.pages[i].va = (uint) np->pgdir;
+                np->RAMpgs.pages[i] = curproc->RAMpgs.pages[i];
+                np->RAMpgs.pages[i].va = (uint) np->pgdir;
+            }
+        }
 #endif
 
     np->sz = curproc->sz;
@@ -263,10 +282,21 @@ exit(void)
 
     //task 4
 #ifdef TRUE
-    cprintf("%d %s %d %d %d %d %d %s\n" ,
-                p->pid, state, p->RAMpgs.size,  p->SWAPpgs.size, p->pnum ,p->pgflt, p->pgout , p->name);
+        cprintf("%d %s %d %d %d %d %d %s\n" ,
+                p->pid, state, p->RAMpgs.size + p->SWAPpgs.size,  p->SWAPpgs.size, p->pnum ,p->pgflt, p->pgout , p->name);
 #endif
-    acquire(&ptable.lock);
+
+        //task 3
+#ifndef NONE
+        if(curproc->pid > DEFAULT_PROCESSES) {
+            // deleting back store...
+            removeSwapFile(curproc);
+            //reset data structers..
+            memset(&(curproc->SWAPpgs), 0, 2 * sizeof(struct pageArray));
+        }
+#endif
+
+        acquire(&ptable.lock);
 
     // Parent might be sleeping in wait().
     wakeup1(curproc->parent);
@@ -295,39 +325,30 @@ wait(void)
     int havekids, pid;
     struct proc *curproc = myproc();
 
-    acquire(&ptable.lock);
-    for(;;){
-        // Scan through table looking for exited children.
-        havekids = 0;
-        for(p = ptable.proc; p < &ptable.proc[NPROC]; p++){
-            if(p->parent != curproc)
-                continue;
-            havekids = 1;
-            if(p->state == ZOMBIE){
-                // Found one.
-                pid = p->pid;
-                kfree(p->kstack);
-                p->kstack = 0;
-                freevm(p->pgdir);
-                p->pid = 0;
-                p->parent = 0;
-                p->name[0] = 0;
-                p->killed = 0;
-                p->state = UNUSED;
-                cleanPages(p);
-                release(&ptable.lock);
-                //task 3
-#ifndef NONE
-                if(curproc->pid > DEFAULT_PROCESSES) {
-                    // deleting back store...
-                    removeSwapFile(curproc);
-                    //reset data structers..
-                    memset(&(curproc->SWAPpgs), 0, 2 * sizeof(struct pageArray));
+        acquire(&ptable.lock);
+        for(;;){
+            // Scan through table looking for exited children.
+            havekids = 0;
+            for(p = ptable.proc; p < &ptable.proc[NPROC]; p++){
+                if(p->parent != curproc)
+                    continue;
+                havekids = 1;
+                if(p->state == ZOMBIE){
+                    // Found one.
+                    pid = p->pid;
+                    kfree(p->kstack);
+                    p->kstack = 0;
+                    freevm(p->pgdir);
+                    p->pid = 0;
+                    p->parent = 0;
+                    p->name[0] = 0;
+                    p->killed = 0;
+                    p->state = UNUSED;
+                    cleanPages(p);
+                    release(&ptable.lock);
+                    return pid;
                 }
-#endif
-                return pid;
             }
-        }
 
         // No point waiting if we don't have any children.
         if(!havekids || curproc->killed){
@@ -555,12 +576,12 @@ procdump(void)
         else
             state = "???";
 #ifndef NONE
-        currFreePages -= p->RAMpgs.size;
+            currFreePages -= (p->RAMpgs.size + p->SWAPpgs.size);
 
-        //<field 1><field 2><allocated memory pages><paged out><protected
-        //pages><page faults><total number of paged out><field set 3>
-        cprintf("%d %s %d %d %d %d %d %s\n" ,
-                p->pid, state, p->RAMpgs.size,  p->SWAPpgs.size, p->pnum ,p->pgflt, p->pgout , p->name);
+            //<field 1><field 2><allocated memory pages><paged out><protected
+            //pages><page faults><total number of paged out><field set 3>
+            cprintf("%d %s %d %d %d %d %d %s\n" ,
+                    p->pid, state, p->RAMpgs.size + p->SWAPpgs.size,  p->SWAPpgs.size, p->pnum ,p->pgflt, p->pgout , p->name);
 #else
         cprintf("%d %s %s", p->pid, state, p->name);
 #endif
@@ -579,7 +600,7 @@ procdump(void)
     }
 
 #ifndef NONE
-    cprintf("%d / %d free pages in the system\n", currFreePages, total_available_pages);
+        cprintf("%d / %d free pages in the system\n", currFreePages, total_available_pages);
 #endif
 }
 
