@@ -199,11 +199,16 @@ int main(){
 	make_test(mySimpleTets, 0,"mySimpleTets");
     make_test(doubleProcess, 0,"doubleProcess");
     make_test(segTest, 0,"segTest");
-    make_test(doubleProcess, 0,"doubleProcess");
     make_test(forktests, 1,"forktests");
-    make_test(multiplewritesOneProcess, 0,"multiplewritesOneProcess");
+    //make_test(multiplewritesOneProcess, 0,"multiplewritesOneProcess");
     make_test(overLoadPage, 0,"overLoadPage");
     make_test(copyMemTest, 0,"copyMemTest");
-	
-	exit();
+
+    // ___________________SUMMERY_______________________________
+    printf(1,"__________________SUMMERY________________________________\n");
+    printf(1, "num of success:%d num of failures: %d\n", success, fail);
+
+    if (fail == 0)
+        printf(1, "All tests passed!! Yay!\n");
+    exit();
 }
